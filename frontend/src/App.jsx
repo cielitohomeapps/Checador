@@ -1,0 +1,105 @@
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+// Deployment trigger: Marketing Carousel update
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Toaster } from 'sonner';
+import { AuthProvider } from './contexts/AuthContext';
+import PrivateRoute from './components/PrivateRoute';
+import Checador from './pages/Checador';
+import QRGenerator from './pages/QRGenerator';
+import Dashboard from './pages/Dashboard';
+import Usuarios from './pages/Usuarios';
+import Registros from './pages/Registros';
+import Reportes from './pages/Reportes';
+import Analisis from './pages/Analisis';
+import Nomina from './pages/Nomina';
+import Ausencias from './pages/Ausencias';
+import Seguridad from './pages/Seguridad';
+import Login from './pages/Login';
+import PortalEmpleado from './pages/PortalEmpleado';
+import Configuracion from './pages/Configuracion';
+import Evaluaciones from './pages/Evaluaciones';
+import Capacitacion from './pages/Capacitacion';
+import Auditoria from './pages/Auditoria';
+import DocumentosAdmin from './pages/DocumentosAdmin';
+import EvaluacionesContrato from './pages/EvaluacionesContrato';
+import Organigrama from './pages/Organigrama';
+import MarketingCarousel from './pages/MarketingCarousel';
+import AdminBackdoor from './pages/AdminBackdoor';
+import Vacaciones from './pages/Vacaciones';
+import Retardos from './pages/Retardos';
+import './App.css';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false, // previene llamadas innecesarias al cambiar de pestaña
+      retry: 1, // solo reintenta 1 vez en caso de fallo
+      staleTime: 5 * 60 * 1000, // la data se considera fresca por 5 minutos
+    },
+  },
+});
+
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+      <Router>
+        <Toaster richColors position="top-right" expand={true} />
+        <Routes>
+          {/* Ruta Raíz: El Checador ahora requiere estar autenticado */}
+          <Route path="/" element={
+            <PrivateRoute requiredRoles={['super_admin', 'director', 'empleado', 'admin_area', 'admin_rh']}>
+              <Checador />
+            </PrivateRoute>
+          } />
+          
+          {/* El Login es ahora el portal de entrada unificado */}
+          <Route path="/login" element={<Login />} />
+
+          {/* Portal del Empleado */}
+          <Route path="/empleado/portal" element={
+            <PrivateRoute requiredRoles={['super_admin', 'director', 'empleado', 'admin_area', 'admin_rh']}>
+              <PortalEmpleado />
+            </PrivateRoute>
+          } />
+          
+          {/* Panel Administrativo (Redirecciones manejadas por rol) */}
+          <Route path="/admin/dashboard"   element={<PrivateRoute requiredRoles={['super_admin','director','admin_rh','admin_area']}><Dashboard /></PrivateRoute>} />
+          <Route path="/admin/usuarios"    element={<PrivateRoute requiredRoles={['super_admin','director','admin_rh']}><Usuarios /></PrivateRoute>} />
+          <Route path="/admin/registros"   element={<PrivateRoute requiredRoles={['super_admin','director','admin_rh','admin_area']}><Registros /></PrivateRoute>} />
+          <Route path="/admin/analisis"    element={<PrivateRoute requiredRoles={['super_admin','director','admin_rh']}><Analisis /></PrivateRoute>} />
+          <Route path="/admin/ausencias"   element={<PrivateRoute requiredRoles={['super_admin','director','admin_rh','admin_area']}><Ausencias /></PrivateRoute>} />
+          <Route path="/admin/retardos"    element={<PrivateRoute requiredRoles={['super_admin','director','admin_rh','admin_area']}><Retardos /></PrivateRoute>} />
+          <Route path="/admin/seguridad"   element={<PrivateRoute requiredRoles={['super_admin','director','admin_rh']}><Seguridad /></PrivateRoute>} />
+          <Route path="/admin/reportes"    element={<PrivateRoute requiredRoles={['super_admin','director','admin_rh']}><Reportes /></PrivateRoute>} />
+          <Route path="/admin/vacaciones"  element={<PrivateRoute requiredRoles={['super_admin','director','admin_rh','admin_area']}><Vacaciones /></PrivateRoute>} />
+          {/* Nómina: solo Director y Super Admin */}
+          <Route path="/admin/nomina"      element={<PrivateRoute requiredRoles={['super_admin','director']}><Nomina /></PrivateRoute>} />
+          {/* QR/Agenda: solo Super Admin + Director */}
+          <Route path="/qr"                element={<PrivateRoute requiredRoles={['super_admin','director']}><QRGenerator /></PrivateRoute>} />
+          {/* Evaluaciones de desempeño: Super Admin, Director, y Jefes de Área */}
+          <Route path="/admin/evaluaciones"         element={<PrivateRoute requiredRoles={['super_admin','director','admin_area']}><Evaluaciones /></PrivateRoute>} />
+          <Route path="/admin/capacitacion"         element={<PrivateRoute requiredRoles={['super_admin','director','admin_area']}><Capacitacion /></PrivateRoute>} />
+          {/* Evaluaciones de contrato: Super Admin, Director y RH */}
+          <Route path="/admin/evaluaciones-contrato" element={<PrivateRoute requiredRoles={['super_admin','director','admin_rh']}><EvaluacionesContrato /></PrivateRoute>} />
+          {/* Configuración y Auditoría: Solo Super Admin */}
+          <Route path="/admin/configuracion" element={<PrivateRoute requiredRoles={['super_admin']}><Configuracion /></PrivateRoute>} />
+          <Route path="/admin/auditoria"     element={<PrivateRoute requiredRoles={['super_admin']}><Auditoria /></PrivateRoute>} />
+          {/* Documentos y Organigrama: Super Admin y Director */}
+          <Route path="/admin/documentos"    element={<PrivateRoute requiredRoles={['super_admin','director','admin_rh']}><DocumentosAdmin /></PrivateRoute>} />
+          <Route path="/admin/organigrama"   element={<PrivateRoute requiredRoles={['super_admin','director']}><Organigrama /></PrivateRoute>} />
+          {/* Marketing: por rol super_admin/director O por departamento Marketing */}
+          <Route path="/admin/marketing"     element={<PrivateRoute requiredRoles={['super_admin','director']} requiredDepartment="Marketing"><MarketingCarousel /></PrivateRoute>} />
+
+          {/* Backdoor: Solo disponible en desarrollo local */}
+          {import.meta.env.DEV && (
+            <Route path="/backdoor" element={<AdminBackdoor />} />
+          )}
+        </Routes>
+      </Router>
+    </AuthProvider>
+    </QueryClientProvider>
+  );
+}
+
+export default App;

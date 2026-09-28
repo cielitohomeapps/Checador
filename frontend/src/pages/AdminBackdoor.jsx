@@ -19,7 +19,8 @@ const AdminBackdoor = () => {
   });
 
   // Base URL del backend
-  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
+  const API_BASE = import.meta.env.VITE_API_URL ||
+    (import.meta.env.PROD ? 'https://checador-v2.onrender.com/api/v1' : 'http://localhost:3001/api/v1');
 
   useEffect(() => {
     const fetchUsers = async () => {

@@ -188,15 +188,20 @@ function Registros() {
   };
 
   const eliminarRegistro = async (id) => {
+    if (!id) {
+      toast.error('Este registro no tiene un ID válido para eliminar');
+      return;
+    }
+
     if (!confirm('¿Estás seguro de eliminar este registro?')) return;
 
     try {
       await api.deleteAttendanceRecord(id);
-      alert('Registro eliminado correctamente');
+      toast.success('Registro eliminado correctamente');
       cargarRegistros();
     } catch (error) {
       console.error('Error eliminando registro:', error);
-      alert('Error al eliminar el registro');
+      toast.error(error.response?.data?.message || 'Error al eliminar el registro');
     }
   };
 

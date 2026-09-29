@@ -15,6 +15,7 @@ class AttendanceController {
     this.getTodayRecord = this.getTodayRecord.bind(this);
     this.registerManual = this.registerManual.bind(this);
     this.getRetardsSummary = this.getRetardsSummary.bind(this);
+    this.deleteRecord = this.deleteRecord.bind(this);
   }
 
   // Helper para verificar si el usuario tiene permisos de admin (Email o Rol)
@@ -362,6 +363,47 @@ class AttendanceController {
 
     } catch (error) {
       console.error('Error obteniendo resumen de retardos:', error);
+      res.status(HTTP_STATUS.INTERNAL_ERROR).json({
+        success: false,
+        message: ERROR_MESSAGES.GENERAL.INTERNAL_ERROR
+      });
+    }
+  }
+
+  /**
+   * DELETE /api/v1/attendance/:id
+   * Elimina un registro de asistencia (solo admin)
+   */
+  async deleteRecord(req, res) {
+    try {
+      if (!this._isUserAdmin(req.user)) {
+        return res.status(HTTP_STATUS.FORBIDDEN).json({
+          success: false,
+          message: 'Acceso restringido a administradores'
+        });
+      }
+
+      const { id } = req.params;
+
+      if (!id) {
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({
+          success: false,
+          message: 'El ID del registro es requerido'
+        });
+      }
+
+      const result = await AttendanceService.deleteRecord(id, req.user);
+
+      res.json(result);
+    } catch (error) {
+      if (error.message === 'Registro no encontrado') {
+        return res.status(HTTP_STATUS.NOT_FOUND).json({
+          success: false,
+          message: error.message
+        });
+      }
+
+      console.error('Error eliminando registro de asistencia:', error);
       res.status(HTTP_STATUS.INTERNAL_ERROR).json({
         success: false,
         message: ERROR_MESSAGES.GENERAL.INTERNAL_ERROR

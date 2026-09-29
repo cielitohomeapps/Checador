@@ -81,4 +81,11 @@ router.get('/today-record/:uid', authMiddleware, AttendanceController.getTodayRe
  */
 router.get('/retards/summary', authMiddleware, adminMiddleware, AttendanceController.getRetardsSummary);
 
+/**
+ * DELETE /api/v1/attendance/:id
+ * Elimina un registro de asistencia
+ * Requiere: autenticación + admin
+ */
+router.delete('/:id', authMiddleware, adminMiddleware, AttendanceController.deleteRecord);
+
 export default router;

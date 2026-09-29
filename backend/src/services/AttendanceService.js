@@ -858,6 +858,55 @@ class AttendanceService {
       throw error;
     }
   }
+
+  /**
+   * Elimina un registro de asistencia (solo administradores)
+   * @param {string} id - ID del documento en Firestore
+   * @param {Object} adminUser - Usuario administrador que realiza la acción
+   * @returns {Object} Resultado de la operación
+   */
+  async deleteRecord(id, adminUser) {
+    try {
+      const docRef = this.db.collection(this.attendanceCollection).doc(id);
+      const snapshot = await docRef.get();
+
+      if (!snapshot.exists) {
+        throw new Error('Registro no encontrado');
+      }
+
+      const registro = { id: snapshot.id, ...snapshot.data() };
+      await docRef.delete();
+
+      await AuditService.log({
+        accion: 'eliminar_registro_asistencia',
+        entidad: 'registros',
+        entidadId: id,
+        ejecutadoPor: {
+          uid: adminUser.uid,
+          email: adminUser.email || adminUser.correo,
+          nombre: adminUser.nombre || adminUser.displayName || 'Admin',
+          role: adminUser.role || 'admin'
+        },
+        detalles: {
+          empleadoAfectado: registro.email,
+          nombreEmpleadoAfectado: registro.nombre,
+          fecha: registro.fecha,
+          hora: registro.hora,
+          tipoEvento: registro.tipoEvento,
+          estado: registro.estado
+        }
+      });
+
+      return {
+        success: true,
+        data: registro,
+        message: `Registro de asistencia de ${registro.nombre || 'empleado'} eliminado con éxito.`
+      };
+    } catch (error) {
+      console.error('Error en deleteRecord:', error);
+      throw error;
+    }
+  }
 }
 
 export default new AttendanceService();

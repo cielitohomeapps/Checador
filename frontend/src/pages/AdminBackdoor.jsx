@@ -19,8 +19,12 @@ const AdminBackdoor = () => {
   });
 
   // Base URL del backend
-  const API_BASE = import.meta.env.VITE_API_URL ||
-    (import.meta.env.PROD ? 'https://checador-v2.onrender.com/api/v1' : 'http://localhost:3001/api/v1');
+  const API_BASE = (() => {
+    const raw = import.meta.env.VITE_API_URL ||
+      (import.meta.env.PROD ? 'https://checador-1ed8.onrender.com' : 'http://localhost:3001');
+    const clean = raw.replace(/\/+$/, '');
+    return /\/api\/v\d+$/.test(clean) ? clean : `${clean}/api/v1`;
+  })();
 
   useEffect(() => {
     const fetchUsers = async () => {

@@ -19,13 +19,26 @@ export function calcularDistanciaMetros(lat1, lng1, lat2, lng2) {
   const Δφ = (lat2 - lat1) * Math.PI / 180;
   const Δλ = (lng2 - lng1) * Math.PI / 180;
 
-  const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-            Math.cos(φ1) * Math.cos(φ2) *
-            Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+  let a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+          Math.cos(φ1) * Math.cos(φ2) *
+          Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+
+  // Evita NaN por error de redondeo cuando a supera ligeramente 1
+  a = Math.min(a, 1);
 
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
   return R * c; // Distancia en metros
+}
+
+/**
+ * Verifica que la oficina tenga coordenadas válidas configuradas
+ * @returns {boolean}
+ */
+export function oficinaConfigurada() {
+  const { lat, lng } = CONFIG.OFICINA;
+  return Number.isFinite(lat) && Number.isFinite(lng) &&
+    Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
 }
 
 /**
@@ -34,36 +47,54 @@ export function calcularDistanciaMetros(lat1, lng1, lat2, lng2) {
  * @returns {Object} { dentroDeRango: boolean, distancia: number }
  */
 export function verificarUbicacionOficina(coords) {
-  if (!coords || isNaN(coords.lat) || isNaN(coords.lng)) {
+  const limiteMetros = CONFIG.OFICINA.radio_metros;
+
+  if (!oficinaConfigurada()) {
     console.error('❌ ERROR: Coordenadas de oficina no configuradas en el servidor (OFFICE_LAT/OFFICE_LNG)');
     return {
       dentroDeRango: false,
       distancia: null,
+      limiteMetros,
       error: 'Configuración de servidor incompleta'
     };
   }
 
-  if (!coords.lat || !coords.lng) {
+  const lat = Number(coords?.lat);
+  const lng = Number(coords?.lng);
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) ||
+      Math.abs(lat) > 90 || Math.abs(lng) > 180) {
     return {
       dentroDeRango: false,
       distancia: null,
+      limiteMetros,
       error: 'Coordenadas inválidas'
     };
   }
 
   const distancia = calcularDistanciaMetros(
-    coords.lat,
-    coords.lng,
+    lat,
+    lng,
     CONFIG.OFICINA.lat,
     CONFIG.OFICINA.lng
   );
 
-  console.log(`📍 Validación de ubicación: Distancia a oficina = ${Math.round(distancia)}m (Límite: ${CONFIG.OFICINA.radio_metros}m)`);
+  if (!Number.isFinite(distancia)) {
+    console.error('❌ ERROR: No se pudo calcular la distancia a la oficina');
+    return {
+      dentroDeRango: false,
+      distancia: null,
+      limiteMetros,
+      error: 'No se pudo calcular la distancia'
+    };
+  }
+
+  console.log(`📍 Validación de ubicación: Distancia a oficina = ${Math.round(distancia)}m (Límite: ${limiteMetros}m)`);
 
   return {
-    dentroDeRango: distancia <= CONFIG.OFICINA.radio_metros,
+    dentroDeRango: distancia <= limiteMetros,
     distancia: Math.round(distancia),
-    limiteMetros: CONFIG.OFICINA.radio_metros
+    limiteMetros
   };
 }
 
@@ -73,11 +104,16 @@ export function verificarUbicacionOficina(coords) {
 export function formatearCoordenadas(coords) {
   if (!coords) return 'Sin ubicación';
 
-  return `${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`;
+  const lat = Number(coords.lat);
+  const lng = Number(coords.lng);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return 'Sin ubicación';
+
+  return `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
 }
 
 export default {
   calcularDistanciaMetros,
+  oficinaConfigurada,
   verificarUbicacionOficina,
   formatearCoordenadas
 };

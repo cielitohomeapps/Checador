@@ -3,6 +3,8 @@ import cron from 'node-cron';
 import app from './app.js';
 import ContractEvaluationService from './services/ContractEvaluationService.js';
 import NotificationService from './services/NotificationService.js';
+import { CONFIG } from './config/constants.js';
+import { oficinaConfigurada } from './utils/geoUtils.js';
 
 // Cargar variables de entorno
 dotenv.config();
@@ -71,6 +73,12 @@ const server = app.listen(PORT, () => {
   console.log(`   • API root: http://localhost:${PORT}/api/v1`);
   console.log('');
   console.log('✅ Servidor listo para recibir peticiones');
+  if (!oficinaConfigurada()) {
+    console.error('⚠️  OFFICE_LAT / OFFICE_LNG no configuradas: la validación de ubicación fallará (Distancia: NaN).');
+    console.error(`   Valores actuales: lat=${CONFIG.OFICINA.lat} lng=${CONFIG.OFICINA.lng}`);
+  } else {
+    console.log(`📍 Oficina: ${CONFIG.OFICINA.lat}, ${CONFIG.OFICINA.lng} (radio ${CONFIG.OFICINA.radio_metros}m)`);
+  }
   console.log('');
 });
 

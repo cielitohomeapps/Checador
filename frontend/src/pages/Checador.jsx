@@ -189,6 +189,36 @@ function Checador() {
     }
   };
 
+  // Obtiene la ubicación del usuario con timeout y motivo de error legible
+  const obtenerUbicacion = () => new Promise((resolve) => {
+    if (!('geolocation' in navigator)) {
+      console.warn('Geolocalización no soportada por el navegador');
+      resolve({ location: null, motivo: 'Tu navegador no soporta geolocalización' });
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => resolve({
+        location: {
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          accuracy: pos.coords.accuracy
+        },
+        motivo: null
+      }),
+      (err) => {
+        console.warn('No se pudo obtener ubicación:', err.code, err.message);
+        const motivos = {
+          1: 'Permiso de ubicación denegado. Actívalo en tu navegador e inténtalo de nuevo.',
+          2: 'No se pudo determinar tu ubicación. Verifica que el GPS esté activado.',
+          3: 'Tiempo de espera agotado al obtener la ubicación. Revisa tu conexión y el GPS.'
+        };
+        resolve({ location: null, motivo: motivos[err.code] || 'No se pudo obtener tu ubicación.' });
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  });
+
   const registrarAsistencia = async () => {
     if (!qrValido && !isRemoteUser) {
       mostrarStatus('error', '❌ Debes escanear el código QR de la oficina');
@@ -200,23 +230,16 @@ function Checador() {
       return;
     }
 
+    let motivoGeo = null;
     try {
       const params = new URLSearchParams(window.location.search);
       const token = params.get('token');
 
       // Obtener ubicación si es posible
-      let location = null;
-      try {
-        const pos = await new Promise((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject);
-        });
-        location = {
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-          accuracy: pos.coords.accuracy
-        };
-      } catch (e) {
-        console.warn('No se pudo obtener ubicación');
+      const { location, motivo } = await obtenerUbicacion();
+      motivoGeo = motivo;
+      if (!location) {
+        console.warn('Ubicación no disponible:', motivo);
       }
 
       const requestData = { qrCode: 'OFICINA2025' };
@@ -238,7 +261,12 @@ function Checador() {
         mostrarStatus('success', registro.tipoEvento === 'entrada' ? '✅ ¡Entrada Registrada!' : '📤 ¡Salida Registrada!');
         await cargarHistorial(user.uid);
       } else {
-        mostrarStatus('error', `❌ ${response.data.message}`);
+        const msgBackend = response.data.message || 'Error al registrar asistencia';
+        // Si falló por falta de ubicación, mostramos el motivo real del navegador
+        const detalle = motivoGeo && msgBackend.toLowerCase().includes('ubicación')
+          ? motivoGeo
+          : msgBackend;
+        mostrarStatus('error', `❌ ${detalle}`);
         setAutoRegistrando(false); // Permitir reintento manual si falló por horario/CORS/etc
       }
     } catch (error) {

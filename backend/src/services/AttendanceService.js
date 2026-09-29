@@ -114,14 +114,23 @@ class AttendanceService {
    * Valida ubicación del usuario
    */
   validarUbicacion(location) {
-    if (!location || !location.lat || !location.lng) {
+    if (!location || location.lat === undefined || location.lat === null ||
+        location.lng === undefined || location.lng === null) {
       return {
         success: false,
-        message: '⛔ No se pudo obtener tu ubicación. Activa la ubicación para registrar asistencia.'
+        message: '⛔ No se pudo obtener tu ubicación. Activa la ubicación (GPS) para registrar asistencia.'
       };
     }
 
     const resultado = verificarUbicacionOficina(location);
+
+    if (resultado.error) {
+      console.error('❌ Error validando ubicación:', resultado.error, location);
+      return {
+        success: false,
+        message: '⛔ No se pudo validar tu ubicación. Contacta a sistemas (configuración del servidor incompleta).'
+      };
+    }
 
     if (!resultado.dentroDeRango) {
       return {

@@ -22,7 +22,7 @@ const INTERVALO_CARRUSEL_MS = 12000; // 12 segundos por foto
 const HORA_INICIO     = 7;   // 7 AM  — activa el sistema
 const HORA_CARRUSEL   = 10;  // 10 AM — empieza carrusel
 const HORA_TARDE      = 13;  // 1 PM  — vuelve el QR estático
-const HORA_DORMIR     = 17;  // 5 PM  — el sistema se duerme
+const HORA_DORMIR     = 20;  // 8 PM  — el sistema se duerme (pruebas: era 5 PM)
 
 function QRGenerator() {
   const navigate = useNavigate();
